@@ -28,7 +28,7 @@ int main()
     // сидим на 0.0.0.0
     host_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    if (bind(sockfd, &host_addr, host_addr_len)){
+    if (bind(sockfd, (struct sockaddr *)&host_addr, host_addr_len)){
         perror("Не удалось связать адрес и сокет");
         return 1;
     }
