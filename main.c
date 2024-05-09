@@ -15,6 +15,12 @@
         (p) = NULL;      \
     } while (0)
 
+// HTTP коды
+#define OK 200
+#define NOTFOUND 404
+#define BAD_REQUEST	400
+#define NOT_ALLOWED	405
+
 char *response_creator(const int status, const char *content_type, const char *message)
 {
     char *response = malloc(4096);
@@ -26,7 +32,7 @@ char *response_creator(const int status, const char *content_type, const char *m
     snprintf(response, 4096, "HTTP/1.0 %d OK\r\n"
                              "Server: CWebServer\r\n"
                              "Content-type: %s\r\n\r\n"
-                             "%s",
+                             "<html>%s</html>\r\n",
              status, content_type, message);
     return response;
 }
