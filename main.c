@@ -2,6 +2,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <sys/socket.h>
+#include <unistd.h>
 
 #define PORT 8080
 
@@ -18,7 +19,7 @@ int main()
 
     // создаем адрес хоста
     struct sockaddr_in host_addr;
-    int host_addr_len = sizeof(host_addr);
+    socklen_t host_addr_len = sizeof(host_addr);
 
     // инициализируем адрес
     // используем ipv4
@@ -28,18 +29,35 @@ int main()
     // сидим на 0.0.0.0
     host_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    if (bind(sockfd, (struct sockaddr *)&host_addr, host_addr_len)){
+    if (bind(sockfd, (struct sockaddr *)&host_addr, host_addr_len))
+    {
         perror("Не удалось связать адрес и сокет");
         return 1;
     }
     puts("Связано успешно!");
 
     // прослушиваем входящий подключения; не мелочимся и берем максимум
-    if (listen(sockfd, SOMAXCONN) != 0){
+    if (listen(sockfd, SOMAXCONN) != 0)
+    {
         perror("Прослушивание неудачно");
     }
 
     puts("Сервер готов к пролушиванию соединений");
+
+    for (;;)
+    {
+        // принимаем входящие подключения
+        int new_sockfd = accept(sockfd, (struct sockaddr *)&host_addr, (socklen_t *)&host_addr_len);
+
+        if (new_sockfd < 0){
+            perror("Ошибка при подключении");
+        }
+
+        puts("Соединение принято");
+
+        // закрываем подключение
+        close(new_sockfd);
+    }
 
     return 0;
 }
