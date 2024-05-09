@@ -18,8 +18,18 @@
 // HTTP коды
 #define OK 200
 #define NOTFOUND 404
-#define BAD_REQUEST	400
-#define NOT_ALLOWED	405
+#define BAD_REQUEST 400
+#define NOT_ALLOWED 405
+
+enum HTTP_METHODS
+{
+    GET,
+    POST,
+    DELETE,
+    PUT
+};
+
+char *parse_url(char *buffer);
 
 char *response_creator(const int status, const char *content_type, const char *message)
 {
@@ -96,6 +106,34 @@ void setup_server(int sockfd)
     printf("Сервер готов по адресу 0.0.0.0:8080\n");
 }
 
+int method(char *buffer)
+{
+    enum HTTP_METHODS result;
+    if (strncmp(buffer, "POST", 4) == 0)
+    {
+        result = POST;
+    }
+    else if (strncmp(buffer, "GET", 3) == 0)
+    {
+        result = GET;
+    }
+    else if (strncmp(buffer, "PUT", 3) == 0)
+    {
+        result = PUT;
+    }
+    else if (strncmp(buffer, "DELETE", 6) == 0)
+    {
+        result = PUT;
+    }
+    else
+    {
+        fprintf(stderr, "Не удалось распознать метод");
+        exit(EXIT_FAILURE);
+    }
+
+    return result;
+}
+
 void handle_client(int new_sockfd, char *test_resp)
 {
     char buffer[BUFFER_SIZE];
@@ -107,7 +145,11 @@ void handle_client(int new_sockfd, char *test_resp)
         return;
     }
 
-    if (strncmp(buffer, "POST", 4) == 0)
+    char *url;
+    url = parse_url(buffer);
+    printf("url = %s\n", url);
+
+    if (method(buffer) == POST)
     {
         char *body = strstr(buffer, "\r\n\r\n");
         if (body)
@@ -158,6 +200,46 @@ void handle_client(int new_sockfd, char *test_resp)
     }
 
     close(new_sockfd);
+}
+
+char *parse_url(char *buffer)
+{
+    // GET /122 HTTP/1.1
+    //    |    |
+    // нам нужно забрать всё, что между палочками -- это url
+    // первый пробел
+    char *method_end = strchr(buffer, ' ');
+    if (!method_end)
+    {
+        fprintf(stderr, "Неверный формат запроса\n");
+        return NULL;
+    }
+
+    // "/" ~= начало url
+    char *url_start = method_end + 1;
+
+    // второй пробел
+    char *url_end = strchr(url_start, ' ');
+    if (!url_end)
+    {
+        fprintf(stderr, "Неверный формат запроса\n");
+        return NULL;
+    }
+
+    // длина url
+    size_t url_length = url_end - url_start;
+
+    // создаем строку для url
+    char *url = malloc(url_length + 1);
+    if (!url)
+    {
+        fprintf(stderr, "Не удалось выделить память\n");
+        return NULL;
+    }
+    strncpy(url, url_start, url_length);
+    url[url_length] = '\0';
+
+    return url;
 }
 
 int main()
