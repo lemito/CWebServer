@@ -30,12 +30,13 @@ enum HTTP_METHODS
 
 char *parse_url(char *buffer);
 void handle_home(int new_sockfd, char *buffer);
+void handle_about(int sockfd);
 void handle_404(int sockfd);
 enum HTTP_METHODS method(char *buffer);
 
 char *response_creator(const int status, const char *content_type, const char *message)
 {
-    char *response = malloc(4096);
+    char *response = malloc(BUFFER_SIZE);
     if (response == NULL)
     {
         fprintf(stderr, "Не удалось создать response");
@@ -108,12 +109,64 @@ void setup_server(int sockfd)
     printf("Сервер готов по адресу 0.0.0.0:8080\n");
 }
 
+char *read_all_from_html(FILE *fd)
+{
+    size_t bufSize, pos = 0;
+    char *buf, *newBuf;
+
+    fseek(fd, 0, SEEK_END);
+    bufSize = ftell(fd);
+    fseek(fd, 0, SEEK_SET);
+
+    buf = malloc(bufSize);
+    if (buf == NULL)
+    {
+        return NULL;
+    }
+
+    while (pos < bufSize)
+    {
+        size_t bytesRead = fread(buf + pos, sizeof(char), bufSize - pos, fd);
+        if (bytesRead == 0)
+        {
+            if (feof(fd))
+            {
+                break;
+            }
+            else
+            {
+                free(buf);
+                return NULL;
+            }
+        }
+        pos += bytesRead;
+    }
+
+    newBuf = realloc(buf, pos);
+    if (newBuf != NULL)
+    {
+        buf = newBuf;
+    }
+
+    return buf;
+}
+
 void router(char *route, int sockfd, char *buffer)
 {
     if (strcmp(route, "/") == 0)
     {
-        printf("route = %s", route);
         handle_home(sockfd, buffer);
+    }
+    else if (strcmp(route, "/about") == 0)
+    {
+        if (method(buffer) == GET)
+            handle_about(sockfd);
+        else
+        {
+            char *response = response_creator(NOT_ALLOWED, "text/plain", "Метод запрещен для данного пути");
+            write(sockfd, response, strlen(response));
+            FREE_AND_NULL(response);
+        }
     }
     else if (strcmp(route, "/favicon.ico") == 0)
     {
@@ -123,9 +176,10 @@ void router(char *route, int sockfd, char *buffer)
     }
     else
     {
-        printf("route = %s", route);
         handle_404(sockfd);
     }
+
+    //    FREE_AND_NULL(buffer);
 }
 
 void handle_home(int new_sockfd, char *buffer)
@@ -214,6 +268,30 @@ void handle_404(int sockfd)
     FREE_AND_NULL(message);
 }
 
+void handle_about(int sockfd)
+{
+    FILE *aboutfd = fopen("about.html", "r");
+    if (aboutfd == NULL)
+    {
+        fprintf(stderr, "Не удалось найти файл about.html");
+    }
+    char *html = read_all_from_html(aboutfd);
+    if (html == NULL)
+    {
+        perror("Не удалось выделить память под сообщение 404");
+        return;
+    }
+
+    char *response = response_creator(OK, "text/html", html);
+    printf("404 = %s\n", response);
+
+    write(sockfd, response, strlen(response));
+
+    FREE_AND_NULL(response);
+    FREE_AND_NULL(html);
+    fclose(aboutfd);
+}
+
 enum HTTP_METHODS method(char *buffer)
 {
     printf("buffer:\n%s", buffer);
@@ -245,7 +323,8 @@ enum HTTP_METHODS method(char *buffer)
 
 void handle_client(int new_sockfd)
 {
-    char buffer[BUFFER_SIZE];
+    char *buffer = malloc(BUFFER_SIZE);
+
     ssize_t valRead = read(new_sockfd, buffer, BUFFER_SIZE);
     if (valRead < 0)
     {
@@ -262,6 +341,7 @@ void handle_client(int new_sockfd)
     router(url, new_sockfd, buffer);
 
     close(new_sockfd);
+    FREE_AND_NULL(buffer);
 }
 
 char *parse_url(char *buffer)
@@ -309,8 +389,6 @@ int main()
     int sockfd = setup_socket();
     setup_server(sockfd);
 
-    printf("%d\n", strncmp("POST 200 HTTP", "GET", 3));
-
     while (1)
     {
         struct sockaddr_in host_addr;
@@ -325,5 +403,4 @@ int main()
         handle_client(new_sockfd);
     }
     // FREE_AND_NULL(test_resp);
-
 }
