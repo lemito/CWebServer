@@ -106,7 +106,7 @@ void setup_server(int sockfd)
     printf("Сервер готов по адресу 0.0.0.0:8080\n");
 }
 
-int method(char *buffer)
+enum HTTP_METHODS method(char *buffer)
 {
     enum HTTP_METHODS result;
     if (strncmp(buffer, "POST", 4) == 0)
