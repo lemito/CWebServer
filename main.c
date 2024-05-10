@@ -4,6 +4,7 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
 
 #define PORT 8080
 #define BUFFER_SIZE 4096
@@ -81,7 +82,8 @@ int setup_socket()
         perror("Ошибка");
         exit(EXIT_FAILURE);
     }
-    puts("Сокет успешно создан");
+     puts("Сокет успешно создан");
+//    LOG("Сокет успешно создан");
     return sockfd;
 }
 
@@ -98,14 +100,14 @@ void setup_server(int sockfd)
         perror("Не удалось связать адрес и сокет");
         exit(EXIT_FAILURE);
     }
-    puts("Связано успешно!");
+    puts("Связано успешно");
 
     if (listen(sockfd, SOMAXCONN) != 0)
     {
         perror("Прослушивание неудачно");
         exit(EXIT_FAILURE);
     }
-    puts("Сервер готов к пролушиванию соединений");
+    puts("Сервер запущен!");
     printf("Сервер готов по адресу 0.0.0.0:8080\n");
 }
 
@@ -384,10 +386,39 @@ char *parse_url(char *buffer)
     return url;
 }
 
+FILE *log_file_init()
+{
+    time_t rawtime;
+    struct tm *timeinfo;
+    char filename[40];
+
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+
+    sprintf(filename, "%d-%02d-%02d_%02d-%02d-%02d.txt",
+            1900 + timeinfo->tm_year, timeinfo->tm_mon + 1, timeinfo->tm_mday,
+            timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
+
+    FILE *file = fopen(filename, "w");
+    if (file == NULL)
+    {
+        printf("Ошибка открытия файла.\n");
+        return (FILE *)NULL;
+    }
+
+    printf("Лог-файл с именем %s успешно создан.\n", filename);
+
+    return file;
+}
+
 int main()
 {
     int sockfd = setup_socket();
     setup_server(sockfd);
+
+    FILE* logfilefd = log_file_init();
+    fprintf(logfilefd, "Сервер успешно запущен!\n");
+    fclose(logfilefd);
 
     while (1)
     {
@@ -403,4 +434,5 @@ int main()
         handle_client(new_sockfd);
     }
     // FREE_AND_NULL(test_resp);
+
 }
