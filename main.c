@@ -1,5 +1,4 @@
 #include <arpa/inet.h>
-#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/socket.h>
@@ -30,6 +29,9 @@ enum HTTP_METHODS
 };
 
 char *parse_url(char *buffer);
+void handle_home(int new_sockfd, char *buffer);
+void handle_404(int sockfd);
+enum HTTP_METHODS method(char *buffer);
 
 char *response_creator(const int status, const char *content_type, const char *message)
 {
@@ -106,8 +108,115 @@ void setup_server(int sockfd)
     printf("Сервер готов по адресу 0.0.0.0:8080\n");
 }
 
-int method(char *buffer)
+void router(char *route, int sockfd, char *buffer)
 {
+    if (strcmp(route, "/") == 0)
+    {
+        printf("route = %s", route);
+        handle_home(sockfd, buffer);
+    }
+    else if (strcmp(route, "/favicon.ico") == 0)
+    {
+        char *response = response_creator(NOTFOUND, "text/plain", "Favicon not available");
+        write(sockfd, response, strlen(response));
+        FREE_AND_NULL(response);
+    }
+    else
+    {
+        printf("route = %s", route);
+        handle_404(sockfd);
+    }
+}
+
+void handle_home(int new_sockfd, char *buffer)
+{
+
+    if (method(buffer) == GET)
+    {
+        // Отправка формы на главную страницу
+        char *test_resp = response_creator(OK, "text/html", form_creator("/", "", "name"));
+        ssize_t valWrite = write(new_sockfd, test_resp, strlen(test_resp));
+        if (valWrite < 0)
+        {
+            perror("Запись не успешна");
+        }
+        FREE_AND_NULL(test_resp);
+    }
+    else if (method(buffer) == POST)
+    {
+        // Обработка данных формы
+        char *body = strstr(buffer, "\r\n\r\n");
+        if (body)
+        {
+            body += 4;
+            char *name_start = strstr(body, "name=");
+            if (name_start)
+            {
+                name_start += 5;
+                char *name_end = strchr(name_start, '&');
+                if (!name_end)
+                    name_end = strchr(name_start, '\0'); // Ensure we don't go past the end of the string
+
+                if (name_end - name_start > 99) // Check to ensure we don't overflow the name buffer
+                {
+                    fprintf(stderr, "Name value too long\n");
+                    return;
+                }
+
+                char name[100];
+                strncpy(name, name_start, name_end - name_start);
+                name[name_end - name_start] = '\0';
+
+                // Создание сообщения приветствия с именем пользователя
+                char *greeting_msg = strdup("Hello ");
+                if (!greeting_msg)
+                {
+                    fprintf(stderr, "Не удалось выделить память\n");
+                    return;
+                }
+
+                strncat(greeting_msg, name, sizeof(name) - strlen(greeting_msg) - 1);
+                char *greeting = text_creator(greeting_msg);
+                char *response = response_creator(OK, "text/html", greeting);
+                printf("response form = %s\n", response);
+
+                ssize_t valWrite = write(new_sockfd, response, strlen(response));
+                if (valWrite < 0)
+                {
+                    perror("Запись не успешна");
+                }
+                FREE_AND_NULL(greeting_msg);
+                FREE_AND_NULL(response);
+                FREE_AND_NULL(greeting);
+            }
+        }
+    }
+}
+
+void handle_404(int sockfd)
+{
+    char *message = malloc(strlen("<h1>404</h1>") + strlen(text_creator("Page not found")) + 1);
+    if (message == NULL)
+    {
+        perror("Не удалось выделить память под сообщение 404");
+        return;
+    }
+
+    strcpy(message, "<h1>404</h1>");
+    strcat(message, text_creator("Page not found"));
+
+    char *response = response_creator(NOTFOUND, "text/html", message);
+    printf("404 = %s\n", response);
+
+    write(sockfd, response, strlen(response));
+
+    FREE_AND_NULL(response);
+    FREE_AND_NULL(message);
+}
+
+enum HTTP_METHODS method(char *buffer)
+{
+    printf("buffer:\n%s", buffer);
     enum HTTP_METHODS result;
     if (strncmp(buffer, "POST", 4) == 0)
     {
@@ -123,7 +232,7 @@ int method(char *buffer)
     }
     else if (strncmp(buffer, "DELETE", 6) == 0)
     {
-        result = PUT;
+        result = DELETE;
     }
     else
     {
@@ -134,7 +243,7 @@ int method(char *buffer)
     return result;
 }
 
-void handle_client(int new_sockfd, char *test_resp)
+void handle_client(int new_sockfd)
 {
     char buffer[BUFFER_SIZE];
     ssize_t valRead = read(new_sockfd, buffer, BUFFER_SIZE);
@@ -147,57 +256,10 @@ void handle_client(int new_sockfd, char *test_resp)
 
     char *url;
     url = parse_url(buffer);
-    printf("url = %s\n", url);
 
-    if (method(buffer) == POST)
-    {
-        char *body = strstr(buffer, "\r\n\r\n");
-        if (body)
-        {
-            body += 4;
-            char *name_start = strstr(body, "name=");
-            if (name_start)
-            {
-                name_start += 5;
-                char *name_end = strchr(name_start, '&');
-                if (!name_end)
-                    name_end = name_start + strlen(name_start);
+    printf("url = %s ; len = %lu\n", url, strlen(url));
 
-                char name[100];
-                strncpy(name, name_start, name_end - name_start);
-                name[name_end - name_start] = '\0';
-
-                char *greeting_msg = strdup("Hello ");
-                if (!greeting_msg)
-                {
-                    fprintf(stderr, "Не удалось выделить память\n");
-                    return;
-                }
-
-                strncat(greeting_msg, name, sizeof(name) - strlen(greeting_msg) - 1);
-                char *greeting = text_creator(greeting_msg);
-                char *response = response_creator(200, "text/html", greeting);
-                printf("response form = %s\n", response);
-
-                ssize_t valWrite = write(new_sockfd, response, strlen(response));
-                if (valWrite < 0)
-                {
-                    perror("Запись не успешна");
-                }
-                FREE_AND_NULL(greeting_msg);
-                FREE_AND_NULL(response);
-                FREE_AND_NULL(greeting);
-            }
-        }
-    }
-    else
-    {
-        ssize_t valWrite = write(new_sockfd, test_resp, strlen(test_resp));
-        if (valWrite < 0)
-        {
-            perror("Запись не успешна");
-        }
-    }
+    router(url, new_sockfd, buffer);
 
     close(new_sockfd);
 }
@@ -247,8 +309,7 @@ int main()
     int sockfd = setup_socket();
     setup_server(sockfd);
 
-    char *test_resp = response_creator(200, "text/html", form_creator("/", "", "name"));
-    printf("%s", test_resp);
+    printf("%d\n", strncmp("POST 200 HTTP", "GET", 3));
 
     while (1)
     {
@@ -258,13 +319,11 @@ int main()
         if (new_sockfd < 0)
         {
             perror("Ошибка при подключении");
-            continue;
+            exit(EXIT_FAILURE);
         }
         puts("Кто-то подключился | Успешно!");
-        handle_client(new_sockfd, test_resp);
+        handle_client(new_sockfd);
     }
+    // FREE_AND_NULL(test_resp);
 
-    FREE_AND_NULL(test_resp);
-
-    return 0;
 }
