@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <time.h>
+#include <fcntl.h>
+#include <signal.h>
 
 #define PORT 8080
 #define BUFFER_SIZE 4096
@@ -16,10 +18,19 @@
     } while (0)
 
 // HTTP коды
-#define OK 200
-#define NOTFOUND 404
-#define BAD_REQUEST 400
-#define NOT_ALLOWED 405
+#define HTTP_OK 200
+#define HTTP_NOT_FOUND 404
+#define HTTP_BAD_REQUEST 400
+#define HTTP_NOT_ALLOWED 405
+// HTTP статусы текстом
+#define STATUS_TEXT_OK "OK"
+#define STATUS_TEXT_NOT_FOUND "Not Found"
+#define STATUS_TEXT_BAD_REQUEST "Bad Request"
+#define STATUS_TEXT_NOT_ALLOWED "Method Not Allowed"
+
+#define JPEG "image/jpeg"
+#define JS "text/javascript"
+#define CSS "text/css"
 
 enum HTTP_METHODS
 {
@@ -35,6 +46,14 @@ void handle_about(int sockfd);
 void handle_404(int sockfd);
 enum HTTP_METHODS method(char *buffer);
 
+volatile sig_atomic_t server_running = 1;
+
+void handle_signal(int sig) {
+    if (sig == SIGINT) {
+        server_running = 0;
+    }
+}
+
 char *response_creator(const int status, const char *content_type, const char *message)
 {
     char *response = malloc(BUFFER_SIZE);
@@ -43,11 +62,45 @@ char *response_creator(const int status, const char *content_type, const char *m
         fprintf(stderr, "Не удалось создать response");
         return NULL;
     }
-    snprintf(response, 4096, "HTTP/1.0 %d OK\r\n"
+    const char* status_text;
+    switch(status) {
+        case HTTP_OK:
+            status_text = STATUS_TEXT_OK;
+            break;
+        case HTTP_NOT_FOUND:
+            status_text = STATUS_TEXT_NOT_FOUND;
+            break;
+        case HTTP_BAD_REQUEST:
+            status_text = STATUS_TEXT_BAD_REQUEST;
+            break;
+        case HTTP_NOT_ALLOWED:
+            status_text = STATUS_TEXT_NOT_ALLOWED;
+            break;
+        default:
+            status_text = "Unknown Status";
+    }
+    snprintf(response, 4096, "HTTP/1.0 %d %s\r\n"
                              "Server: CWebServer\r\n"
+                             "Content-length: %lu\r\n"
                              "Content-type: %s\r\n\r\n"
                              "<html>%s</html>\r\n",
-             status, content_type, message);
+             status, status_text, strlen(message) + 13, content_type, message);
+    return response;
+}
+
+char *response_creator_static(const int status, const char *content_type, size_t content_length)
+{
+    char *response = malloc(BUFFER_SIZE);
+    if (response == NULL)
+    {
+        fprintf(stderr, "Не удалось создать response");
+        return NULL;
+    }
+    snprintf(response, 4096, "HTTP/1.0 %d OK\r\n"
+                             "Server: CWebServer-STATIC\r\n"
+                             "Content-length: %lu\r\n"
+                             "Content-type: %s\r\n\r\n",
+             status, content_length, content_type);
     return response;
 }
 
@@ -153,6 +206,46 @@ char *read_all_from_html(FILE *fd)
     return buf;
 }
 
+void send_static_file(int sockfd, const char *filename)
+{
+    int filefd = open(filename, O_RDONLY);
+    if (filefd == -1)
+    {
+        perror("Ошибка открытия файла");
+        return;
+    }
+
+    char *content_type = "text/plain";
+    if (strstr(filename, ".css"))
+        content_type = CSS;
+    else if (strstr(filename, ".js"))
+        content_type = JS;
+    else if (strstr(filename, ".jpeg"))
+        content_type = JPEG;
+
+    char buffer[1024];
+    ssize_t bytes_read;
+    size_t total_bytes_read = 0;
+
+    while ((bytes_read = read(filefd, buffer, sizeof(buffer))) > 0)
+    {
+        total_bytes_read += bytes_read;
+    }
+
+    char *response = response_creator_static(HTTP_OK, content_type, total_bytes_read);
+    write(sockfd, response, strlen(response));
+    FREE_AND_NULL(response);
+
+    lseek(filefd, 0, SEEK_SET);
+
+    while ((bytes_read = read(filefd, buffer, sizeof(buffer))) > 0)
+    {
+        write(sockfd, buffer, bytes_read);
+    }
+
+    close(filefd);
+}
+
 void router(char *route, int sockfd, char *buffer)
 {
     if (strcmp(route, "/") == 0)
@@ -165,16 +258,30 @@ void router(char *route, int sockfd, char *buffer)
             handle_about(sockfd);
         else
         {
-            char *response = response_creator(NOT_ALLOWED, "text/plain", "Метод запрещен для данного пути");
+            char *response = response_creator(HTTP_NOT_ALLOWED, "text/plain", "Метод запрещен для данного пути");
             write(sockfd, response, strlen(response));
             FREE_AND_NULL(response);
         }
     }
     else if (strcmp(route, "/favicon.ico") == 0)
     {
-        char *response = response_creator(NOTFOUND, "text/plain", "Favicon not available");
+        char *response = response_creator(HTTP_NOT_FOUND, "text/plain", "Favicon not available");
         write(sockfd, response, strlen(response));
         FREE_AND_NULL(response);
+    }
+    else if (strncmp(route, "/static/", 8) == 0)
+    {
+        if (route != NULL) {
+            char *filename = malloc(strlen(route) + 1);
+            if (filename == NULL) {
+                return;
+            }
+            strcpy(filename, ".");
+            strcat(filename, route);
+            send_static_file(sockfd, filename);
+            free(filename);
+//            FREE_AND_NULL(filename);
+        }
     }
     else
     {
@@ -184,21 +291,77 @@ void router(char *route, int sockfd, char *buffer)
     //    FREE_AND_NULL(buffer);
 }
 
+void html_raw(int sockfd, const char* data, size_t size){
+    if (write(sockfd, data, size) != size)
+        fprintf(stderr, "Ошибка записи html вывода");
+}
+
+void html(int sockfd, const char *txt)
+{
+    html_raw(sockfd, txt, strlen(txt));
+}
+
+void html_attr(int sockfd, const char *txt)
+{
+    const char *t = txt;
+    while (t && *t) {
+        int c = (int)*t;
+        if (c == '<' || c == '>' || c == '\'' || c == '\"' || c == '&') {
+            html_raw(sockfd, txt, t - txt);
+            if (c == '>')
+                html(sockfd, "&gt;");
+            else if (c == '<')
+                html(sockfd, "&lt;");
+            else if (c == '\'')
+                html(sockfd, "&#x27;");
+            else if (c == '"')
+                html(sockfd, "&quot;");
+            else html(sockfd, "&amp;");
+            txt = t + 1;
+        }
+        t++;
+    }
+    if (t != txt)
+        html(sockfd, txt);
+}
+
+void html_link_open(int sockfd, const char *url, const char *title, const char *class)
+{
+    html(sockfd, "<a href='");
+    html_attr(sockfd, url);
+    if (title) {
+        html(sockfd, "' title='");
+        html_attr(sockfd, title);
+    }
+    if (class) {
+        html(sockfd, "' class='");
+        html_attr(sockfd, class);
+    }
+    html(sockfd, "'>");
+}
+
+void html_link_close(int sockfd)
+{
+    html(sockfd, "</a>");
+}
+
 void handle_home(int new_sockfd, char *buffer)
 {
-
-    if (method(buffer) == GET)
+    enum HTTP_METHODS req_method = method(buffer);
+    if (req_method == GET)
     {
         // Отправка формы на главную страницу
-        char *test_resp = response_creator(OK, "text/html", form_creator("/", "", "name"));
+        char *form = form_creator("/", "", "name");
+        char *test_resp = response_creator(HTTP_OK, "text/html", form);
         ssize_t valWrite = write(new_sockfd, test_resp, strlen(test_resp));
         if (valWrite < 0)
         {
             perror("Запись не успешна");
         }
+        FREE_AND_NULL(form);
         FREE_AND_NULL(test_resp);
     }
-    else if (method(buffer) == POST)
+    else if (req_method == POST)
     {
         // Обработка данных формы
         char *body = strstr(buffer, "\r\n\r\n");
@@ -211,9 +374,9 @@ void handle_home(int new_sockfd, char *buffer)
                 name_start += 5;
                 char *name_end = strchr(name_start, '&');
                 if (!name_end)
-                    name_end = strchr(name_start, '\0'); // Ensure we don't go past the end of the string
+                    name_end = strchr(name_start, '\0');
 
-                if (name_end - name_start > 99) // Check to ensure we don't overflow the name buffer
+                if (name_end - name_start > 99)
                 {
                     fprintf(stderr, "Name value too long\n");
                     return;
@@ -233,7 +396,7 @@ void handle_home(int new_sockfd, char *buffer)
 
                 strncat(greeting_msg, name, sizeof(name) - strlen(greeting_msg) - 1);
                 char *greeting = text_creator(greeting_msg);
-                char *response = response_creator(OK, "text/html", greeting);
+                char *response = response_creator(HTTP_OK, "text/html", greeting);
                 printf("response form = %s\n", response);
 
                 ssize_t valWrite = write(new_sockfd, response, strlen(response));
@@ -261,7 +424,7 @@ void handle_404(int sockfd)
     strcpy(message, "<h1>404</h1>");
     strcat(message, text_creator("Page not found"));
 
-    char *response = response_creator(NOTFOUND, "text/html", message);
+    char *response = response_creator(HTTP_NOT_FOUND, "text/html", message);
     printf("404 = %s\n", response);
 
     write(sockfd, response, strlen(response));
@@ -284,7 +447,7 @@ void handle_about(int sockfd)
         return;
     }
 
-    char *response = response_creator(OK, "text/html", html);
+    char *response = response_creator(HTTP_NOT_FOUND, "text/html", html);
     printf("404 = %s\n", response);
 
     write(sockfd, response, strlen(response));
@@ -296,7 +459,6 @@ void handle_about(int sockfd)
 
 enum HTTP_METHODS method(char *buffer)
 {
-    printf("buffer:\n%s", buffer);
     enum HTTP_METHODS result;
     if (strncmp(buffer, "POST", 4) == 0)
     {
@@ -343,6 +505,7 @@ void handle_client(int new_sockfd)
     router(url, new_sockfd, buffer);
 
     close(new_sockfd);
+    FREE_AND_NULL(url);
     FREE_AND_NULL(buffer);
 }
 
@@ -390,12 +553,12 @@ FILE *log_file_init()
 {
     time_t rawtime;
     struct tm *timeinfo;
-    char filename[40];
+    char filename[45];
 
     time(&rawtime);
     timeinfo = localtime(&rawtime);
 
-    sprintf(filename, "%d-%02d-%02d_%02d-%02d-%02d.txt",
+    sprintf(filename, "LOG-%d-%02d-%02d_%02d-%02d-%02d.txt",
             1900 + timeinfo->tm_year, timeinfo->tm_mon + 1, timeinfo->tm_mday,
             timeinfo->tm_hour, timeinfo->tm_min, timeinfo->tm_sec);
 
@@ -413,14 +576,18 @@ FILE *log_file_init()
 
 int main()
 {
+    signal(SIGINT, handle_signal);
+
     int sockfd = setup_socket();
     setup_server(sockfd);
 
     FILE* logfilefd = log_file_init();
-    fprintf(logfilefd, "Сервер успешно запущен!\n");
-    fclose(logfilefd);
+    if (logfilefd != NULL) {
+        fprintf(logfilefd, "Сервер успешно запущен!\n");
+        fflush(logfilefd);
+    }
 
-    while (1)
+    while (server_running)
     {
         struct sockaddr_in host_addr;
         socklen_t host_addr_len = sizeof(host_addr);
@@ -428,11 +595,26 @@ int main()
         if (new_sockfd < 0)
         {
             perror("Ошибка при подключении");
-            exit(EXIT_FAILURE);
+            if (logfilefd != NULL) {
+                fprintf(logfilefd, "Ошибка при подключении\n");
+                fflush(logfilefd);
+            }
+            continue;
         }
         puts("Кто-то подключился | Успешно!");
+        if (logfilefd != NULL) {
+            fprintf(logfilefd, "Кто-то подключился | Успешно!\n");
+            fflush(logfilefd);
+        }
         handle_client(new_sockfd);
     }
-    // FREE_AND_NULL(test_resp);
 
+    if (logfilefd != NULL) {
+        fprintf(logfilefd, "Сервер выключен!\n");
+        fflush(logfilefd);
+        fclose(logfilefd);
+    }
+
+    close(sockfd);
+    return 0;
 }

@@ -2,3 +2,6 @@ build
 /cmake-build-debug/
 /.idea
 /chernovik.c
+LOG-*.txt
+*.out
+*.o
