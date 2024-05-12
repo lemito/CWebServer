@@ -45,7 +45,10 @@ void handle_home(int new_sockfd, char *buffer);
 void handle_about(int sockfd);
 void handle_404(int sockfd);
 enum HTTP_METHODS method(char *buffer);
+void log_write(char* msg);
+FILE *log_file_init();
 
+FILE *log_file = NULL;
 volatile sig_atomic_t server_running = 1;
 
 void handle_signal(int sig) {
@@ -386,7 +389,6 @@ void handle_home(int new_sockfd, char *buffer)
                 strncpy(name, name_start, name_end - name_start);
                 name[name_end - name_start] = '\0';
 
-                // Создание сообщения приветствия с именем пользователя
                 char *greeting_msg = strdup("Hello ");
                 if (!greeting_msg)
                 {
@@ -397,7 +399,6 @@ void handle_home(int new_sockfd, char *buffer)
                 strncat(greeting_msg, name, sizeof(name) - strlen(greeting_msg) - 1);
                 char *greeting = text_creator(greeting_msg);
                 char *response = response_creator(HTTP_OK, "text/html", greeting);
-                printf("response form = %s\n", response);
 
                 ssize_t valWrite = write(new_sockfd, response, strlen(response));
                 if (valWrite < 0)
@@ -425,7 +426,6 @@ void handle_404(int sockfd)
     strcat(message, text_creator("Page not found"));
 
     char *response = response_creator(HTTP_NOT_FOUND, "text/html", message);
-    printf("404 = %s\n", response);
 
     write(sockfd, response, strlen(response));
 
@@ -447,8 +447,7 @@ void handle_about(int sockfd)
         return;
     }
 
-    char *response = response_creator(HTTP_NOT_FOUND, "text/html", html);
-    printf("404 = %s\n", response);
+    char *response = response_creator(HTTP_OK, "text/html", html);
 
     write(sockfd, response, strlen(response));
 
@@ -501,6 +500,10 @@ void handle_client(int new_sockfd)
     url = parse_url(buffer);
 
     printf("url = %s ; len = %lu\n", url, strlen(url));
+
+    char *log_msg = malloc(256 * sizeof (char));
+    snprintf(log_msg, 256, "Кто-то подключился на url %s, номер сокета = %d", url, new_sockfd);
+    log_write(log_msg);
 
     router(url, new_sockfd, buffer);
 
@@ -574,6 +577,19 @@ FILE *log_file_init()
     return file;
 }
 
+void log_write(char* msg){
+    if (log_file != NULL) {
+        fprintf(log_file, "%s\n", msg);
+        fprintf(stdout, "%s\n", msg);
+        fflush(log_file);
+        fflush(stdout);
+    }
+    else {
+        perror("Файла нет!");
+        return;
+    }
+}
+
 int main()
 {
     signal(SIGINT, handle_signal);
@@ -581,11 +597,8 @@ int main()
     int sockfd = setup_socket();
     setup_server(sockfd);
 
-    FILE* logfilefd = log_file_init();
-    if (logfilefd != NULL) {
-        fprintf(logfilefd, "Сервер успешно запущен!\n");
-        fflush(logfilefd);
-    }
+    log_file = log_file_init();
+    log_write("Сервер успешно запущен!");
 
     while (server_running)
     {
@@ -595,26 +608,16 @@ int main()
         if (new_sockfd < 0)
         {
             perror("Ошибка при подключении");
-            if (logfilefd != NULL) {
-                fprintf(logfilefd, "Ошибка при подключении\n");
-                fflush(logfilefd);
-            }
+            log_write( "Ошибка при подключении");
             continue;
         }
         puts("Кто-то подключился | Успешно!");
-        if (logfilefd != NULL) {
-            fprintf(logfilefd, "Кто-то подключился | Успешно!\n");
-            fflush(logfilefd);
-        }
+        log_write( "Кто-то подключился | Успешно!");
         handle_client(new_sockfd);
     }
 
-    if (logfilefd != NULL) {
-        fprintf(logfilefd, "Сервер выключен!\n");
-        fflush(logfilefd);
-        fclose(logfilefd);
-    }
-
+    log_write( "Сервер выключен!");
+    fclose(log_file);
     close(sockfd);
     return 0;
 }
