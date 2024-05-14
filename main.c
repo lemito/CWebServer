@@ -40,6 +40,7 @@ enum HTTP_METHODS
     PUT
 };
 
+// декларации НЕКОТОРЫХ функций
 char *parse_url(char *buffer);
 void handle_home(int new_sockfd, char *buffer);
 void handle_about(int sockfd);
@@ -47,6 +48,11 @@ void handle_404(int sockfd);
 enum HTTP_METHODS method(char *buffer);
 void log_write(char* msg);
 FILE *log_file_init();
+void html_raw(int sockfd, const char* data, size_t size);
+void html(int sockfd, const char *txt);
+void html_attr(int sockfd, const char *txt);
+void html_link_open(int sockfd, const char *url, const char *title, const char *class);
+void html_link_close(int sockfd);
 
 FILE *log_file = NULL;
 volatile sig_atomic_t server_running = 1;
@@ -122,7 +128,7 @@ char *text_creator(const char *message)
     return response;
 }
 
-char *form_creator(const char *action, char *const value, char *const id)
+char *form_creator(int sockfd, const char *action, char *const value, char *const id)
 {
     char *response = malloc(1024);
 
@@ -146,6 +152,7 @@ int setup_socket()
 void setup_server(int sockfd)
 {
     struct sockaddr_in host_addr;
+    memset(&host_addr, 0, sizeof(host_addr));
     socklen_t host_addr_len = sizeof(host_addr);
     host_addr.sin_family = AF_INET;
     host_addr.sin_port = htons(PORT);
@@ -295,13 +302,14 @@ void router(char *route, int sockfd, char *buffer)
 }
 
 void html_raw(int sockfd, const char* data, size_t size){
-    if (write(sockfd, data, size) != size)
+    if (write(sockfd, data, size) < 0)
         fprintf(stderr, "Ошибка записи html вывода");
 }
 
 void html(int sockfd, const char *txt)
 {
-    html_raw(sockfd, txt, strlen(txt));
+    size_t txt_len = strlen(txt);
+    html_raw(sockfd, txt, txt_len);
 }
 
 void html_attr(int sockfd, const char *txt)
@@ -354,7 +362,7 @@ void handle_home(int new_sockfd, char *buffer)
     if (req_method == GET)
     {
         // Отправка формы на главную страницу
-        char *form = form_creator("/", "", "name");
+        char *form = form_creator(new_sockfd, "/", "", "name");
         char *test_resp = response_creator(HTTP_OK, "text/html", form);
         ssize_t valWrite = write(new_sockfd, test_resp, strlen(test_resp));
         if (valWrite < 0)
@@ -504,6 +512,7 @@ void handle_client(int new_sockfd)
     char *log_msg = malloc(256 * sizeof (char));
     snprintf(log_msg, 256, "Кто-то подключился на url %s, номер сокета = %d", url, new_sockfd);
     log_write(log_msg);
+    FREE_AND_NULL(log_msg);
 
     router(url, new_sockfd, buffer);
 
