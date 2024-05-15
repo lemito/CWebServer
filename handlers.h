@@ -1,10 +1,11 @@
 #ifndef CWEBSERVER_HANDLERS_H
 #define CWEBSERVER_HANDLERS_H
 
-#include "main.h"
 #include "responses.h"
 #include "logger.h"
-
+#include "config.h"
+#include "html_helpers.h"
+#include "utils.h"
 
 void handle_home(int new_sockfd, char *buffer);
 void handle_about(int sockfd);

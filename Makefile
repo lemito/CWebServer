@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -Werror -Wpedantic -g
 
-SERVER_SRC =  handlers.c logger.c responses.c
+SERVER_SRC =  handlers.c logger.c responses.c utils.c socket_setup.c html_helpers.c file_handling.c
 SERVER_OBJS = $(SERVER_SRC:.c=.o)
 
 all: clean compile run

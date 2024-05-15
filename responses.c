@@ -1,6 +1,5 @@
 #include "responses.h"
 
-
 char *response_creator(const int status, const char *content_type, const char *message)
 {
     const char* status_text;

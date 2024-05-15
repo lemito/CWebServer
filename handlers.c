@@ -1,6 +1,7 @@
 #include "handlers.h"
 
 
+
 void handle_home(int new_sockfd, char *buffer)
 {
     HTTP_METHODS req_method = method(buffer);

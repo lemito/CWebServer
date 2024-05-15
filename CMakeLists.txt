@@ -10,4 +10,13 @@ add_executable(CWebServer main.c
         handlers.c
         handlers.h
         logger.c
-        logger.h)
+        logger.h
+        config.h
+        socket_setup.c
+        socket_setup.h
+        file_handling.c
+        file_handling.h
+        utils.c
+        utils.h
+        html_helpers.c
+        html_helpers.h)
