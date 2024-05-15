@@ -65,12 +65,6 @@ void handle_signal(int sig) {
 
 char *response_creator(const int status, const char *content_type, const char *message)
 {
-    char *response = malloc(BUFFER_SIZE);
-    if (response == NULL)
-    {
-        fprintf(stderr, "Не удалось создать response");
-        return NULL;
-    }
     const char* status_text;
     switch(status) {
         case HTTP_OK:
@@ -88,12 +82,14 @@ char *response_creator(const int status, const char *content_type, const char *m
         default:
             status_text = "Unknown Status";
     }
+    char *response = malloc(BUFFER_SIZE);
     snprintf(response, 4096, "HTTP/1.0 %d %s\r\n"
                              "Server: CWebServer\r\n"
                              "Content-length: %lu\r\n"
                              "Content-type: %s\r\n\r\n"
                              "<html>%s</html>\r\n",
              status, status_text, strlen(message) + 13, content_type, message);
+    
     return response;
 }
 
@@ -113,6 +109,14 @@ char *response_creator_static(const int status, const char *content_type, size_t
     return response;
 }
 
+void write_response(int sockfd, char* response, size_t len){
+    ssize_t bytes = write(sockfd, response, len);
+    if (bytes < 0){
+        perror("Запись ответа не успешна!");
+        log_write("Запись ответа не успешна!");
+    }
+}
+
 char *text_creator(const char *message)
 {
     size_t message_len = strlen(message);
@@ -128,7 +132,7 @@ char *text_creator(const char *message)
     return response;
 }
 
-char *form_creator(int sockfd, const char *action, char *const value, char *const id)
+char *form_creator(const char *action, char *const value, char *const id)
 {
     char *response = malloc(1024);
 
@@ -243,14 +247,14 @@ void send_static_file(int sockfd, const char *filename)
     }
 
     char *response = response_creator_static(HTTP_OK, content_type, total_bytes_read);
-    write(sockfd, response, strlen(response));
+    write_response(sockfd, response, strlen(response));
     FREE_AND_NULL(response);
 
     lseek(filefd, 0, SEEK_SET);
 
     while ((bytes_read = read(filefd, buffer, sizeof(buffer))) > 0)
     {
-        write(sockfd, buffer, bytes_read);
+        write_response(sockfd, buffer, bytes_read);
     }
 
     close(filefd);
@@ -269,14 +273,14 @@ void router(char *route, int sockfd, char *buffer)
         else
         {
             char *response = response_creator(HTTP_NOT_ALLOWED, "text/plain", "Метод запрещен для данного пути");
-            write(sockfd, response, strlen(response));
+            write_response(sockfd, response, strlen(response));
             FREE_AND_NULL(response);
         }
     }
     else if (strcmp(route, "/favicon.ico") == 0)
     {
         char *response = response_creator(HTTP_NOT_FOUND, "text/plain", "Favicon not available");
-        write(sockfd, response, strlen(response));
+        write_response(sockfd, response, strlen(response));
         FREE_AND_NULL(response);
     }
     else if (strncmp(route, "/static/", 8) == 0)
@@ -356,20 +360,32 @@ void html_link_close(int sockfd)
     html(sockfd, "</a>");
 }
 
+
+
 void handle_home(int new_sockfd, char *buffer)
 {
     enum HTTP_METHODS req_method = method(buffer);
     if (req_method == GET)
     {
-        // Отправка формы на главную страницу
-        char *form = form_creator(new_sockfd, "/", "", "name");
-        char *test_resp = response_creator(HTTP_OK, "text/html", form);
-        ssize_t valWrite = write(new_sockfd, test_resp, strlen(test_resp));
-        if (valWrite < 0)
-        {
-            perror("Запись не успешна");
-        }
+        char *title = strdup("<h1>Home</h1>");
+        char* form = malloc(100);
+        char *resp_msg;
+
+        strcpy(form, form_creator("/", "", "name"));
+
+        resp_msg = malloc(strlen(title) + strlen(form) + 1);
+        strcpy(resp_msg, title);
+        strcat(resp_msg, form);
+
+        char *test_resp = response_creator(HTTP_OK, "text/html", resp_msg);
+
+        printf("resp = %s", test_resp);
+
+        write_response(new_sockfd, test_resp, strlen(test_resp));
+
+        FREE_AND_NULL(title);
         FREE_AND_NULL(form);
+        FREE_AND_NULL(resp_msg);
         FREE_AND_NULL(test_resp);
     }
     else if (req_method == POST)
@@ -408,11 +424,8 @@ void handle_home(int new_sockfd, char *buffer)
                 char *greeting = text_creator(greeting_msg);
                 char *response = response_creator(HTTP_OK, "text/html", greeting);
 
-                ssize_t valWrite = write(new_sockfd, response, strlen(response));
-                if (valWrite < 0)
-                {
-                    perror("Запись не успешна");
-                }
+                write_response(new_sockfd, response, strlen(response));
+
                 FREE_AND_NULL(greeting_msg);
                 FREE_AND_NULL(response);
                 FREE_AND_NULL(greeting);
@@ -435,7 +448,7 @@ void handle_404(int sockfd)
 
     char *response = response_creator(HTTP_NOT_FOUND, "text/html", message);
 
-    write(sockfd, response, strlen(response));
+    write_response(sockfd, response, strlen(response));
 
     FREE_AND_NULL(response);
     FREE_AND_NULL(message);
@@ -457,7 +470,7 @@ void handle_about(int sockfd)
 
     char *response = response_creator(HTTP_OK, "text/html", html);
 
-    write(sockfd, response, strlen(response));
+    write_response(sockfd, response, strlen(response));
 
     FREE_AND_NULL(response);
     FREE_AND_NULL(html);
