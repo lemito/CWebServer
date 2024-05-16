@@ -21,7 +21,7 @@ void setup_server(int sockfd)
 {
     struct sockaddr_in host_addr;
     memset(&host_addr, 0, sizeof(host_addr));
-    socklen_t host_addr_len = sizeof(host_addr);
+    unsigned int host_addr_len = sizeof(host_addr);
     host_addr.sin_family = AF_INET;
     host_addr.sin_port = htons(PORT);
     host_addr.sin_addr.s_addr = htonl(INADDR_ANY);

@@ -135,7 +135,7 @@ HTTP_METHODS method(char *buffer)
     }
     else if (strncmp(buffer, "DELETE", 6) == 0)
     {
-        result = DELETE;
+        result = HttpDelete;
     }
     else
     {

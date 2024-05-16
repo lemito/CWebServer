@@ -26,7 +26,7 @@ int main()
     while (server_running)
     {
         struct sockaddr_in host_addr;
-        socklen_t host_addr_len = sizeof(host_addr);
+        unsigned int host_addr_len = sizeof(host_addr);
         int new_sockfd = accept(sockfd, (struct sockaddr *)&host_addr, &host_addr_len);
         if (new_sockfd < 0)
         {

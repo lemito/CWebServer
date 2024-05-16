@@ -6,7 +6,11 @@
 #define CWEBSERVER_SOCKET_SETUP_H
 
 #include "config.h"
+#ifdef _POSIX_C_SOURCE
 #include <netinet/in.h>
+#elif defined(WIN32)
+#include <winsock2.h>
+#endif
 #include "logger.h"
 
 int setup_socket(void);

@@ -6,8 +6,13 @@
 #define CWEBSERVER_CONFIG_H
 
 // standard includes
+#ifdef _POSIX_C_SOURCE
 #include <sys/socket.h>
 #include <unistd.h>
+#elif defined(WIN32)
+#include <winsock2.h>
+#endif
+
 #include <string.h>
 #include <time.h>
 #include <fcntl.h>
@@ -41,10 +46,10 @@
     } while (0)
 
 // enums
-typedef enum {
+typedef enum HTTP_METHODS {
     GET,
     POST,
-    DELETE,
+    HttpDelete,
     PUT
 } HTTP_METHODS;
 
