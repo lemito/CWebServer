@@ -18,6 +18,7 @@ main.o: main.c
 run:
 	./a.out
 
+.PHONY: clean
 clean:
 	echo "Cleaned!"
 	rm -rf *.o a.out
