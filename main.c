@@ -34,13 +34,12 @@ int main()
             log_write( "Ошибка при подключении");
             continue;
         }
-        puts("Кто-то подключился | Успешно!");
         log_write( "Кто-то подключился | Успешно!");
         handle_client(new_sockfd);
     }
     shutdown_server(sockfd);
     log_write( "Сервер выключен!");
     fclose(log_file);
-    close(sockfd);
+//    close(sockfd);
     return 0;
 }
