@@ -39,7 +39,7 @@ void setup_server(int sockfd)
         exit(EXIT_FAILURE);
     }
     puts("Сервер запущен!");
-    printf("Сервер готов по адресу 0.0.0.0:8080\n");
+    printf("Сервер готов по адресу http://0.0.0.0:8080\n");
 }
 
 void shutdown_server(int sockfd) {
