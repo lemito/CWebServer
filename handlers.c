@@ -1,7 +1,6 @@
 #include "handlers.h"
 
 
-
 void handle_home(int new_sockfd, char *buffer)
 {
     HTTP_METHODS req_method = method(buffer);
@@ -10,6 +9,8 @@ void handle_home(int new_sockfd, char *buffer)
         char *title = strdup("<h1>Home</h1>");
         char* form = malloc(100);
         char *resp_msg;
+
+        memset(form, 0, 100);
 
         strcpy(form, form_creator("/", "", "name"));
 
@@ -49,29 +50,21 @@ void handle_home(int new_sockfd, char *buffer)
                     return;
                 }
 
-                char name[100];
+                char* name = malloc(100);
                 strncpy(name, name_start, name_end - name_start);
                 name[name_end - name_start] = '\0';
 
-                char *greeting_msg = strdup("Hello ");
-                if (!greeting_msg)
-                {
-                    fprintf(stderr, "Не удалось выделить память\n");
-                    return;
-                }
+                char greeting_msg[200];
+                snprintf(greeting_msg, sizeof(greeting_msg), "<p>Hello %s</p><br><a href='/'>Back to home</a>", name);
 
-                strncat(greeting_msg, name, sizeof(name) - strlen(greeting_msg) - 1);
-                char *greeting = text_creator(greeting_msg);
-                char *response = response_creator(HTTP_OK, "text/html", greeting);
+                printf("%s\n", greeting_msg);
+                char *response = response_creator(HTTP_OK, "text/html", greeting_msg);
 
                 write_response(new_sockfd, response, strlen(response));
 
-                FREE_AND_NULL(greeting_msg);
                 FREE_AND_NULL(response);
-                FREE_AND_NULL(greeting);
             }
         }
-        FREE_AND_NULL(body);
     }
 }
 
@@ -150,6 +143,8 @@ void handle_client(int new_sockfd)
 {
     char *buffer = malloc(BUFFER_SIZE);
 
+    memset(buffer, 0, BUFFER_SIZE);
+
     ssize_t valRead = read(new_sockfd, buffer, BUFFER_SIZE);
     if (valRead < 0)
     {
@@ -170,7 +165,8 @@ void handle_client(int new_sockfd)
 
     router(url, new_sockfd, buffer);
 
-    close(new_sockfd);
     FREE_AND_NULL(url);
     FREE_AND_NULL(buffer);
+
+    close(new_sockfd);
 }
