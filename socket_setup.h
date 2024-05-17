@@ -8,6 +8,7 @@
 #include "config.h"
 #ifdef _POSIX_C_SOURCE
 #include <netinet/in.h>
+#include <unistd.h>
 #elif defined(WIN32)
 #include <winsock2.h>
 #endif
