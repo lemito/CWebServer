@@ -1,7 +1,12 @@
-#include <signal.h>
 #include "handlers.h"
 #include "logger.h"
 #include "socket_setup.h"
+
+// для POSIX систем
+#ifdef _POSIX_C_SOURCE
+#define USE_SIGACTION
+#include <signal.h>
+#endif
 
 FILE *log_file = NULL;
 volatile sig_atomic_t server_running = 1;
@@ -15,11 +20,16 @@ void handle_signal(int sig) {
 
 int main()
 {
-    struct sigaction sa;
-    sa.sa_handler = handle_signal;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    sigaction(SIGINT, &sa, NULL);
+
+    #if defined(USE_SIGACTION)
+        struct sigaction sa;
+        sa.sa_handler = handle_signal;
+        sigemptyset(&sa.sa_mask);
+        sa.sa_flags = 0;
+        sigaction(SIGINT, &sa, NULL);
+    #else
+        signal(SIGINT, handle_signal);
+    #endif
 
     int sockfd = setup_socket();
     setup_server(sockfd);
