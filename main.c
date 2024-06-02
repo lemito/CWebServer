@@ -1,7 +1,7 @@
+#include <signal.h>
 #include "handlers.h"
 #include "logger.h"
 #include "socket_setup.h"
-
 
 FILE *log_file = NULL;
 volatile sig_atomic_t server_running = 1;
@@ -15,12 +15,20 @@ void handle_signal(int sig) {
 
 int main()
 {
-    signal(SIGINT, handle_signal);
+    struct sigaction sa;
+    sa.sa_handler = handle_signal;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sigaction(SIGINT, &sa, NULL);
 
     int sockfd = setup_socket();
     setup_server(sockfd);
 
     log_file = log_file_init();
+    if (log_file == NULL) {
+        perror("Ошибка при инициализации файла лога");
+        return 1;
+    }
     log_write("Сервер успешно запущен!");
 
     while (server_running)
@@ -36,10 +44,10 @@ int main()
         }
         log_write( "Кто-то подключился | Успешно!");
         handle_client(new_sockfd);
+        close(new_sockfd);
     }
     shutdown_server(sockfd);
     log_write( "Сервер выключен!");
     fclose(log_file);
-//    close(sockfd);
     return 0;
 }

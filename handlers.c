@@ -167,6 +167,4 @@ void handle_client(int new_sockfd)
 
     FREE_AND_NULL(url);
     FREE_AND_NULL(buffer);
-
-    close(new_sockfd);
 }
