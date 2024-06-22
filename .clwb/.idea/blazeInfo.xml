@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="BlazeCompilerInfoMap">
+    <option name="compilerVersionStringMap">
+      <map>
+        <entry key="//:CWebServer" value="gcc (Ubuntu 13.2.0-23ubuntu4) 13.2.0&#10;Copyright (C) 2023 Free Software Foundation, Inc.&#10;This is free software; see the source for copying conditions.  There is NO&#10;warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.&#10;&#10;" />
+        <entry key="//:file_handlingLib" value="gcc (Ubuntu 13.2.0-23ubuntu4) 13.2.0&#10;Copyright (C) 2023 Free Software Foundation, Inc.&#10;This is free software; see the source for copying conditions.  There is NO&#10;warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.&#10;&#10;" />
+        <entry key="//:handlersLib" value="gcc (Ubuntu 13.2.0-23ubuntu4) 13.2.0&#10;Copyright (C) 2023 Free Software Foundation, Inc.&#10;This is free software; see the source for copying conditions.  There is NO&#10;warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.&#10;&#10;" />
+        <entry key="//:html_helpersLib" value="gcc (Ubuntu 13.2.0-23ubuntu4) 13.2.0&#10;Copyright (C) 2023 Free Software Foundation, Inc.&#10;This is free software; see the source for copying conditions.  There is NO&#10;warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.&#10;&#10;" />
+        <entry key="//:loggerLib" value="gcc (Ubuntu 13.2.0-23ubuntu4) 13.2.0&#10;Copyright (C) 2023 Free Software Foundation, Inc.&#10;This is free software; see the source for copying conditions.  There is NO&#10;warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.&#10;&#10;" />
+        <entry key="//:responsesLib" value="gcc (Ubuntu 13.2.0-23ubuntu4) 13.2.0&#10;Copyright (C) 2023 Free Software Foundation, Inc.&#10;This is free software; see the source for copying conditions.  There is NO&#10;warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.&#10;&#10;" />
+        <entry key="//:socketSetupLib" value="gcc (Ubuntu 13.2.0-23ubuntu4) 13.2.0&#10;Copyright (C) 2023 Free Software Foundation, Inc.&#10;This is free software; see the source for copying conditions.  There is NO&#10;warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.&#10;&#10;" />
+        <entry key="//:utilsLib" value="gcc (Ubuntu 13.2.0-23ubuntu4) 13.2.0&#10;Copyright (C) 2023 Free Software Foundation, Inc.&#10;This is free software; see the source for copying conditions.  There is NO&#10;warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.&#10;&#10;" />
+        <entry key="@@bazel_tools//tools/cpp:malloc" value="gcc (Ubuntu 13.2.0-23ubuntu4) 13.2.0&#10;Copyright (C) 2023 Free Software Foundation, Inc.&#10;This is free software; see the source for copying conditions.  There is NO&#10;warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.&#10;&#10;" />
+      </map>
+    </option>
+  </component>
+</project>
