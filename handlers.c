@@ -139,18 +139,18 @@ HTTP_METHODS method(char *buffer)
     return result;
 }
 
-void handle_client(int new_sockfd)
-{
-    char *buffer = malloc(BUFFER_SIZE);
+void* handle_client_thread(void* arg) {
+    int new_sockfd = *(int*)arg;
 
+    char *buffer = malloc(BUFFER_SIZE);
     memset(buffer, 0, BUFFER_SIZE);
 
     ssize_t valRead = read(new_sockfd, buffer, BUFFER_SIZE);
-    if (valRead < 0)
-    {
+    if (valRead < 0) {
         perror("Чтение не успешно");
         close(new_sockfd);
-        return;
+        free(arg);
+        return NULL;
     }
 
     char *url;
@@ -167,4 +167,53 @@ void handle_client(int new_sockfd)
 
     FREE_AND_NULL(url);
     FREE_AND_NULL(buffer);
+    close(new_sockfd);
+    free(arg);
+
+    return NULL;
+}
+
+void router(char *route, int sockfd, char *buffer)
+{
+    if (strcmp(route, "/") == 0)
+    {
+        handle_home(sockfd, buffer);
+    }
+    else if (strcmp(route, "/about") == 0)
+    {
+        if (method(buffer) == GET)
+            handle_about(sockfd);
+        else
+        {
+            char *response = response_creator(HTTP_NOT_ALLOWED, "text/plain", "Метод запрещен для данного пути");
+            write_response(sockfd, response, strlen(response));
+            FREE_AND_NULL(response);
+        }
+    }
+    else if (strcmp(route, "/favicon.ico") == 0)
+    {
+        char *response = response_creator(HTTP_NOT_FOUND, "text/plain", "Favicon not available");
+        write_response(sockfd, response, strlen(response));
+        FREE_AND_NULL(response);
+    }
+    else if (strncmp(route, "/static/", 8) == 0)
+    {
+        if (route != NULL) {
+            char *filename = malloc(strlen(route) + 1);
+            if (filename == NULL) {
+                return;
+            }
+            strcpy(filename, ".");
+            strcat(filename, route);
+            send_static_file(sockfd, filename);
+            free(filename);
+//            FREE_AND_NULL(filename);
+        }
+    }
+    else
+    {
+        handle_404(sockfd);
+    }
+
+    //    FREE_AND_NULL(buffer);
 }

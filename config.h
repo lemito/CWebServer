@@ -5,6 +5,12 @@
 #ifndef CWEBSERVER_CONFIG_H
 #define CWEBSERVER_CONFIG_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
+
 // standard includes
 #ifdef _POSIX_C_SOURCE
 #include <sys/socket.h>
@@ -52,5 +58,9 @@ typedef enum HTTP_METHODS {
     HttpDelete,
     PUT
 } HTTP_METHODS;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif //CWEBSERVER_CONFIG_H

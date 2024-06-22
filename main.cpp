@@ -15,7 +15,6 @@
 
 #endif
 
-// std::ofstream log_file;
 FILE *log_file = nullptr;
 bool server_running = true;
 
@@ -55,13 +54,7 @@ int main()
             continue;
         }
         log_write("Кто-то подключился | Успешно!");
-        //        handle_client(new_sockfd);
-        //        close(new_sockfd);
-        // pthread_t client_thread;
-        // int *new_sockfd_ptr = (int *)malloc(sizeof(int));
-        // *new_sockfd_ptr = new_sockfd;
-        // pthread_create(&client_thread, NULL, handle_client_thread, (void *)new_sockfd_ptr);
-        // pthread_detach(client_thread);
+
         std::unique_ptr<std::thread> client_thread(new std::thread([new_sockfd]() {
             handle_client_thread(reinterpret_cast<void*>(new_sockfd));
         }));
