@@ -5,3 +5,5 @@ build
 LOG-*.txt
 *.out
 *.o
+
+bazel-*
