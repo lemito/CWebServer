@@ -53,6 +53,7 @@ cc_binary(
     srcs = ["main.cpp", "config.h"],
     deps = [
         "@abseil-cpp//absl/strings",
+                "@abseil-cpp//absl/log",
                 "@abseil-cpp//absl/strings:str_format",
         ":responsesLib",
         ":handlersLib",
