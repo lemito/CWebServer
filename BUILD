@@ -49,9 +49,11 @@ cc_library(
 )
 
 cc_binary(
-    name = "CWebServer",
+    name = "CWebServer_bin",
     srcs = ["main.cpp", "config.h"],
     deps = [
+        "@abseil-cpp//absl/strings",
+                "@abseil-cpp//absl/strings:str_format",
         ":responsesLib",
         ":handlersLib",
         ":loggerLib",
@@ -60,6 +62,5 @@ cc_binary(
         ":utilsLib",
         ":html_helpersLib",
     ],
-    linkopts = ["-lpthread"],
     data=["index.html", "about.html"]
 )

@@ -1,6 +1,7 @@
-###############################################################################
-# Bazel now uses Bzlmod by default to manage external dependencies.
-# Please consider migrating your external dependencies from WORKSPACE to MODULE.bazel.
-#
-# For more details, please check https://github.com/bazelbuild/bazel/issues/18958
-###############################################################################
+'''
+Модуль bazel
+'''
+module(name = "c_web_server", version = "1.0")
+
+bazel_dep(name = "abseil-cpp", version = "20240116.2")
+bazel_dep(name = "tcmalloc", version = "0.0.0-20240411-5ed309d")

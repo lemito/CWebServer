@@ -5,7 +5,7 @@ directories:
 derive_targets_from_directories: true
 
 targets:
-  //:CWebServer
+  //:CWebServer_bin
   # If source code isn't resolving, add additional targets that compile it here
 
 additional_languages:

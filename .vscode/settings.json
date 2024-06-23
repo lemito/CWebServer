@@ -1,6 +1,10 @@
 {
     "files.associations": {
         "*.c": "c",
-        "system_error": "c"
+        "system_error": "c",
+        "string": "cpp",
+        "algorithm": "cpp",
+        "type_traits": "cpp",
+        "iterator": "cpp"
     }
 }
