@@ -50,6 +50,9 @@ extern "C"
         free(p);         \
         (p) = NULL;      \
     } while (0)
+#define BOOL char
+#define TRUE 1
+#define FALSE 0
 
 // enums
 typedef enum HTTP_METHODS {

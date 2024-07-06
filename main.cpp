@@ -2,7 +2,6 @@
 #include <fstream>
 #include <csignal>
 #include <thread>
-#include <memory>
 #include <algorithm>
 
 #include "absl/strings/str_format.h"
@@ -15,7 +14,6 @@
 // для POSIX систем
 #ifdef _POSIX_C_SOURCE
 #define USE_SIGACTION
-
 #endif
 
 FILE *log_file = nullptr;
@@ -26,7 +24,6 @@ void handle_signal(int sig)
     if (sig == SIGINT)
     {
         server_running = false;
-        // log_write("Сигнал остановки получен. Сервер останавливается...");
         LOG(INFO) << "Сигнал остановки получен. Сервер останавливается...";
     }
 }
@@ -49,7 +46,6 @@ int main()
         perror("Ошибка при инициализации файла лога");
         return 1;
     }
-    // log_write("Сервер успешно запущен!");
     LOG(INFO) << "Сервер успешно запущен!";
 
     while (server_running)
@@ -60,20 +56,18 @@ int main()
         if (new_sockfd < 0)
         {
             perror("Ошибка при подключении");
-            // log_write("Ошибка при подключении");
             LOG(INFO) << "Ошибка при подключении";
 
             continue;
         }
-        // log_write("Кто-то подключился | Успешно!");
         LOG(INFO) << "Кто-то подключился | Успешно!";
 
-        std::unique_ptr<std::thread> client_thread(new std::thread([new_sockfd]()
-                                                                   { handle_client_thread(reinterpret_cast<void *>(new_sockfd)); }));
-        client_thread->detach();
+	  	std::shared_ptr<int> new_sockfd_shared;
+	  	new_sockfd_shared = std::make_shared<int>(new_sockfd);
+	  	std::unique_ptr<std::thread> client_thread(new std::thread(handle_client_thread, new_sockfd_shared.get()));
+	  	client_thread->detach();
     }
     shutdown_server(sockfd);
-    // log_write("Сервер выключен!");
     LOG(INFO) << "Сервер выключен!";
 
     fclose(log_file);

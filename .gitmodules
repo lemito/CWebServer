@@ -1,0 +1,3 @@
+[submodule "libs/abseil"]
+	path = libs/abseil
+	url = https://github.com/abseil/abseil-cpp.git

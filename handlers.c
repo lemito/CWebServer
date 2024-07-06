@@ -140,7 +140,7 @@ HTTP_METHODS method(char *buffer)
 }
 
 void* handle_client_thread(void* arg) {
-    int new_sockfd = *(int*)arg;
+  	int new_sockfd = *((int*)arg);
 
     char *buffer = malloc(BUFFER_SIZE);
     memset(buffer, 0, BUFFER_SIZE);
@@ -168,7 +168,7 @@ void* handle_client_thread(void* arg) {
     FREE_AND_NULL(url);
     FREE_AND_NULL(buffer);
     close(new_sockfd);
-    free(arg);
+//    free(arg);
 
     return NULL;
 }
