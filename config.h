@@ -54,6 +54,16 @@ extern "C" {
 // enums
 typedef enum HTTP_METHODS { GET, POST, HttpDelete, PUT } HTTP_METHODS;
 
+#define ALLOC(type, name, siz)             \
+  type *name = malloc(sizeof(type) * siz); \
+  if (name == NULL) {                      \
+    perror("NULL ALLOC\n");                \
+  }
+#define FREE(ptr)       \
+  if (ptr) {            \
+    FREE_AND_NULL(ptr); \
+  }
+
 #ifdef __cplusplus
 }
 #endif
