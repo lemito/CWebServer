@@ -6,16 +6,15 @@
 #define CWEBSERVER_FILE_HANDLING_H
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "responses.h"
-#include "config.h"
 
+#include "config.h"
+#include "responses.h"
 
 char *read_all_from_html(FILE *fd);
 void send_static_file(int sockfd, const char *filename);
@@ -24,6 +23,4 @@ void send_static_file(int sockfd, const char *filename);
 }
 #endif
 
-
-
-#endif //CWEBSERVER_FILE_HANDLING_H
+#endif  // CWEBSERVER_FILE_HANDLING_H

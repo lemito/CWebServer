@@ -6,10 +6,8 @@
 #define CWEBSERVER_CONFIG_H
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
-
 
 // standard includes
 #ifdef _POSIX_C_SOURCE
@@ -19,16 +17,16 @@ extern "C"
 #include <winsock2.h>
 #endif
 
-#include <string.h>
-#include <time.h>
 #include <fcntl.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 // constants
 #define PORT 8080
-#define BUFFER_SIZE 4096
+#define BUFFER_SIZE BUFSIZ
 #define HTTP_OK 200
 #define HTTP_NOT_FOUND 404
 #define HTTP_BAD_REQUEST 400
@@ -45,25 +43,19 @@ extern "C"
 
 // macros
 #define FREE_AND_NULL(p) \
-    do                   \
-    {                    \
-        free(p);         \
-        (p) = NULL;      \
-    } while (0)
+  do {                   \
+    free(p);             \
+    (p) = NULL;          \
+  } while (0)
 #define BOOL char
 #define TRUE 1
 #define FALSE 0
 
 // enums
-typedef enum HTTP_METHODS {
-    GET,
-    POST,
-    HttpDelete,
-    PUT
-} HTTP_METHODS;
+typedef enum HTTP_METHODS { GET, POST, HttpDelete, PUT } HTTP_METHODS;
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif //CWEBSERVER_CONFIG_H
+#endif  // CWEBSERVER_CONFIG_H

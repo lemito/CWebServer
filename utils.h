@@ -6,8 +6,7 @@
 #define CWEBSERVER_UTILS_H
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 #include "config.h"
@@ -18,6 +17,4 @@ char *parse_url(char *buffer);
 }
 #endif
 
-
-
-#endif //CWEBSERVER_UTILS_H
+#endif  // CWEBSERVER_UTILS_H

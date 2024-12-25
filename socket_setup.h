@@ -6,9 +6,10 @@
 #define CWEBSERVER_SOCKET_SETUP_H
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
+
+#include <arpa/inet.h>
 
 #include "config.h"
 #ifdef _POSIX_C_SOURCE
@@ -27,6 +28,4 @@ void shutdown_server(int sockfd);
 }
 #endif
 
-
-
-#endif //CWEBSERVER_SOCKET_SETUP_H
+#endif  // CWEBSERVER_SOCKET_SETUP_H

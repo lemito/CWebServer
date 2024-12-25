@@ -2,8 +2,7 @@
 #define CWEBSERVER_LOGGER_H
 
 #ifdef __cplusplus
-extern "C"
-{
+extern "C" {
 #endif
 
 #include <stdio.h>
@@ -11,13 +10,11 @@ extern "C"
 
 extern FILE *log_file;
 
-void log_write(char* msg);
+void log_write(char *msg);
 FILE *log_file_init(void);
 
 #ifdef __cplusplus
 }
 #endif
 
-
-
-#endif //CWEBSERVER_LOGGER_H
+#endif  // CWEBSERVER_LOGGER_H
