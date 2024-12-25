@@ -5,6 +5,8 @@
         "string": "cpp",
         "algorithm": "cpp",
         "type_traits": "cpp",
-        "iterator": "cpp"
+        "iterator": "cpp",
+        "socket_setup.h": "c",
+        "inet.h": "c"
     }
 }
